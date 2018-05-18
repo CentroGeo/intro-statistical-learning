@@ -1,7 +1,7 @@
 ## Welcome to GitHub PagesIntroduction to Statistical Learning with R
 
 
-* [Visualization](./00-visualization/index.nb.html)
+* [Visualization](./00-visualization/index.html)
 
 * [Transformations](./01-transformations/index.nb.html)
 
