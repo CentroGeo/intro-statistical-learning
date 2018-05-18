@@ -11,7 +11,7 @@ The topics treated where chosen as to provide the students with a broad overview
 
 You will nedd a computer with the latest distribution of R installed, you can find installers for different plataforms on the [R project homepage](https://www.r-project.org/)
 
-Altough not strictly necessary, R-studio will help you in running and understanding the excercises. You can find installer for R-studio [here](https://www.rstudio.com/products/rstudio/download/)
+Altough not strictly necessary, R-studio will help you in running and understanding the excercises. You can find installers for R-studio [here](https://www.rstudio.com/products/rstudio/download/)
 
 ### Course organization
 
