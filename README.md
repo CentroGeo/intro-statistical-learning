@@ -20,10 +20,11 @@ The course is organized as a series of workshops. In each workshop we will cover
 Each workshop is contained in a notebook with the code and explanations necessary. Each notebook contains enough explanations so that the student can follow it on his own time.
 
 * [Visualization](./00-visualization/index.html)
-* [Transformations](./01-transformations/index.nb.html)
-* [Linear Regression](./02-linear-regression/index.nb.html)
-* [Multiple Linear Regression](./03-multiple-linear-regression/index.nb.html)
-* [Bias-Variance Trade-off](./04-bias-variance/index.nb.html)
+* [Transformations](./01-transformations/index.html)
+* [Linear Regression](./02-linear-regression/index.html)
+* [Multiple Linear Regression](./03-multiple-linear-regression/index.html)
+* [Bias-Variance Trade-off](./04-bias-variance/index.html)
+* [Decision Trees](./05-decision-trees/index.html)
 
 
 ### External Resources
