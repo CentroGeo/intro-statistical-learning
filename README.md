@@ -1,4 +1,4 @@
-## Introduction to Statistical Learning with R
+## [Introduction to Statistical Learning with R](https://centrogeo.github.io/intro-statistical-learning/)
 
 
 The aim of this course is to give an overview of some of the most important concepts and tools behind Statistical Learning, and at the same time, introducing the students to the use of the [R programming language](https://en.wikipedia.org/wiki/R_(programming_language)) for data analysis. The focus is on providing the students with an intuitive understanding of the possibilities and limitations of statistical data analysis, rather than a formal introduction to the mathematical background.
