@@ -1,0 +1,144 @@
+---
+title: "Introduction to R using tidyverse"
+output:
+  html_document:
+    df_print: paged
+---
+
+The first series of notebooks is aimed at introducing the packages we will be using along the lectures and also to get a feel of the whole process of data analysis using R. We'll cover a few subjects from data visualization to munging and cleaning, for this purpose we will rely on public data sets that are well known and easily available.
+
+Instead of using the base R approach, we will use the set of packages called [Tidyverse](https://www.tidyverse.org/) which are, at least in my opinion, an easier and more concise way of working with data. Tidyverse provides packages for every step of the data analysis process and maintains a constant interface with the user trough the use of _verbs_ that define actions. One of the main goals of Tidyverse is providing users with a consistent approach to data analysis tasks, a broad vision can be seen at the [The tidy tools manifesto
+](https://cran.r-project.org/web/packages/tidyverse/vignettes/manifesto.html).
+
+The first step in this endeavor is, of course, installing all the required libraries. Since the whole Tidyverse is rather large this may take a while.
+
+```{r}
+# Install tidyverse packages 
+install.packages('tidyverse')
+```
+
+After installing all the packages, we can tell R that we want to use a specific library:
+```{r}
+# Use the gplot package
+library(ggplot2)
+```
+
+Or, if we want to have the whole Tidyverse available:
+```{r}
+library(tidyverse)
+```
+
+
+## 1. Data Visualization 
+
+To analyze data and extract meaning and knowledge from it, one needs to _really_ understand it, get acquainted with our data. In this process one of the most useful tools is data visualization. For this purpose Tidyverse provides the package [ggplot2](http://ggplot2.tidyverse.org/). The acronym *ggplot* stands for *Graphics Grammar* and it  provides a _language_ for defining the way we want to display our data graphically. The advantage of ggplot is that it is built for making professional looking, plots quickly with minimal code.
+
+As an introduction to the use of R, we are going to work with [mpg data set](https://archive.ics.uci.edu/ml/datasets/auto+mpg) that is packaged with Tidyverse. This data set is all about cars and fuel economy, actually its a subset of the fuel economy data set containing only car models which had a new release every year between 1999 and 2008. This was used as a proxy for the popularity of the car.
+
+```{r}
+# type mpg in the command line and it will call the data 
+mpg
+```
+
+Here you can see that we have 234 rows of data (observations) with 11 columns (features). This tells us something about our data, for instance it tells us all the variables we have and its types. We can easily know whether a variable is an integer, a continous number or a _factor_.
+
+Displaying data like this tells us importan things, but not really that much, lets make some plots!
+
+##1.1. Scatterplots
+
+We'll explore some of the different types of graphs available in ggplot2, but in  [this link](https://www.r-graph-gallery.com/)  you can see the vast variety of them and the  associated code.
+
+The first kind of graph we're going to do is a Scatter plot, it displays the value of twoo features alng a two-dimensional graphic.
+
+```{r}
+
+ggplot(data = mpg) +
+  geom_point(mapping=aes(x=displ, y=hwy)) 
+```
+
+In this very simple first example, we can see some things about the general pattern of the _graphics grammar_ implemented by ggplot:
+
+* We instantiate the plot by calling `ggplot`, at that time we link our data set to the plot
+* Next we call a geometry type (`geom_point()`) to display our data an define an _aesthetic mapping_ to tell ggplot which and howvariables are going to be used in the visualization (`mapping=aes(x=displ, y=hwy)`) 
+
+Scatterplots are useful, but displaying only two variables limits our ability to explore relationships in our data. One way to display more than two dimensions in an otherwise flat plot is to use the properties of the dots representing observations to represent other variables. 
+
+As a default observations are visualized as black dots with a fixed size. ggplot lets us modify those properties and display the data colored by classes of a variable, for example. 
+
+```{r}
+ggplot(data = mpg) + 
+  geom_point(mapping=aes(x=displ, y=hwy, color = class)) 
+```
+
+Notice how we are now passing a third argument to our aesthetic mapping telling ggplot that we wat to have the color of the dots represent the class variable
+
+### Quick excercise
+
+Change the size of the dots to represent a continous variable
+
+
+## 1.1.2. Facets 
+
+Another usefull way of using a flat plot to represent more than two variables is faceting. The facet plot is generally used for categorical variables, either a single variable or the combination of two, the facet function splits your plot into subplots each displaying one subset of the data. 
+
+To facet a single variable, use facet_wrap(). The first argument of facet_wrap() should be a [formula](https://www.datacamp.com/community/tutorials/r-formula-tutorial), which you create with ~ followed by a variable name, in the case of facet plots this variable must be a factor since it will be used to control the plots that will constitute our facet. 
+
+In the previous example, we used the color to represent the different vehicle classes, now we'll make a single plot for each class using facets. This is another way of displaying more than two variables using a two dimensional space.
+
+```{r}
+ggplot(data = mpg) + 
+  geom_point(mapping = aes(x = displ, y = hwy)) + 
+  facet_wrap(~ class, nrow = 2) # nrow = number of rows 
+
+```
+Notice that the geometry type and aesthetic mapping are the same as in the first example, but we added (yes, with the + sign) a call to `facet_wrap` passing the formula that defines our facets. In this case we are telling `facet_wrap` that we want to use the class variable to facet our plot.
+
+We can also facet with a combination of two variables, arranging individual plots in a grid that reptresents the classes of each variable.
+
+To facet with a combination of two variables, we have to add `facet_grid()` to the plot call. The first argument of `facet_grid()` is also a formula. This time the formula should contain the two (factor) variable names separated by a ~.
+
+```{r}
+ggplot(data = mpg) + 
+  geom_point(mapping = aes(x = displ, y = hwy)) + 
+  facet_grid(drv ~ cyl)
+```
+
+### Quick excercise
+
+Change the size of the dots according to a numerical variable
+
+## 1.1.3 Other geometries
+
+Ggplot has the capability to plot different types of [geometries](http://ggplot2.tidyverse.org/reference/) with the same data, in the next exercise we will graph the same variable with a [smooth geometry](http://ggplot2.tidyverse.org/reference/geom_smooth.html) that interpolates our data points. To change the geom in your plot, change the geom function that you add to ggplot(). For instance, to make `geom_smooth()` plots, you can use this code:
+
+```{r}
+ggplot(data = mpg) + 
+  geom_smooth(mapping = aes(x = displ, y = hwy)) 
+```
+
+This time we are interpolating our data points with a curve fitted using [locally weighted scatterplot smoothing](https://en.wikipedia.org/wiki/Local_regression) (Loess). The shaded area represents the dispersion of data around the fitted curve (or, moer precisely, the error in the fitting).
+
+In the same fashion tha we used when displaying different variables using the point size and color, `geom_smooth` allowes us to differentiate data classes by changing the line type. Here we are going to separate the cars into three lines based on the car’s drive train.
+
+```{r}
+ggplot(data = mpg) + 
+  geom_smooth(mapping = aes(x = displ, y = hwy, linetype = drv))
+```
+
+Same as with the points, we needed only to add a variable (`linetype = drv`) to the aesthetic mapping to separate the lines
+
+ggplot works with a layer model that allows us to add different geometries to the same plot, lets try to add the original points to our line plot.
+
+```{r}
+ggplot(data = mpg) + 
+  geom_smooth(mapping = aes(x = displ, y = hwy, color = drv)) +
+  geom_point(mapping = aes(x = displ, y = hwy, color = drv))
+```
+
+In summary, ggplot2 provides over 30 geometries, and extension packages provide even more (see https://www.ggplot2-exts.org for a sample). The best way to get a comprehensive overview is the ggplot2 cheat sheet, which you can find at http://r studio.com/cheat sheets. To learn more about any single geom, use help: ?geom_smooth.
+
+### Assignment
+
+Use one of the [example datasets](https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/00Index.html) that come with R and use at least three plots to tell a story about the data.
+
+

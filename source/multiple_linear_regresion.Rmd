@@ -1,0 +1,86 @@
+---
+title: 'Linear Regression_dplyr '
+output:
+  html_notebook: default
+  pdf_document: default
+---
+
+
+
+```{r}
+library(purrr)  
+library(ggplot2)
+library(dplyr)
+library(broom)
+library(knitr)  
+library(magrittr)
+install.packages("Ecdat")
+
+```
+
+
+```{r}
+data(Fair, package = "Ecdat") # extramarital affairs dataset
+glimpse(Fair)
+```
+
+
+```{r}
+Fair %>% 
+  dplyr::select(-nbaffairs) %>%  # exclude outcome, leave only predictors 
+  map(~lm(Fair$nbaffairs ~ .x, data = Fair)) %>% 
+  map(summary) %>% 
+  map_dbl("r.squared") %>% 
+  tidy %>% 
+  dplyr::arrange(desc(x)) %>% 
+  rename(r.squared = x) -> r2s
+
+kable(r2s)
+```
+
+```{r}
+lm1 <- lm(nbaffairs ~ rate, data = Fair)
+
+summary(lm1)
+```
+
+```{r}
+summary(lm1)$r.squared
+```
+```{r}
+summary(lm1)$coefficients[2, 4]  #p.value
+```
+
+```{r}
+ncol(Fair)-1
+```
+
+```{r}
+ggplot(r2s, aes(x = reorder(names, r.squared), y = r.squared)) + 
+  geom_point(size = 3, color = "red") +
+  ylab(expression(R^{2})) +
+  xlab("predictors") +
+  ggtitle("Explained variance per predictor from simple regressions")
+
+```
+
+```{r}
+
+
+library(magrittr)
+
+Fair %>% 
+  dplyr::select(-nbaffairs) %>%  # exclude outcome, leave only predictors 
+  map(~lm(Fair$nbaffairs ~ .x, data = Fair)) %>% 
+  map(summary) %>% 
+  map(c("coefficients")) %>% 
+  map_dbl(8)  %>% # 8th element is the p-value 
+  tidy %>% 
+  dplyr::arrange(desc(x)) %>% 
+  rename(p.value = x) -> ps
+  
+  
+kable(ps)
+```
+
+https://sebastiansauer.github.io/multiple-lm-purrr2/

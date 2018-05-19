@@ -1,0 +1,153 @@
+---
+title: "Bias variance tradeoff"
+output:
+  html_document:
+    df_print: paged
+---
+## Introduction
+
+
+In this lesson we will cover one of the most important topics on Machine Learning and one that is often overlooked. When we are trying to predict the outcome of something it is relatively easy to simply add more variables to the model or use more complicated functions to improve the performance of our model, that is, we can complicate the model and obtain better results for the _observations we are using to fit our model_, but that does not necessarily means that our model will behave better when faced with new observations, when presented with data that it _has not seen_.
+
+This problem arises because when modeling our data we are implicitly trying to minimize two different sources of error:
+
+* *Bias* is an error that comes from erroneous assumptions in our model, for example, not using the most relevant variables or the adequate relationship. A model with high bias is said to be _underfitted_
+* *Variance* is the sensitivity of our model to small fluctuations in the input data, a model with high variance will fit the noise in the observations and is referred to as _overfitted_
+
+This situation is called the Bias-Variance trade-off. In this workshop we are going to examine this trade-off to get an intuitive feeling of it.
+
+For this, we will come back to our cars data set and use different functions to fit an output variable to a single predictor.
+
+## Loading and inspecting the dataset
+
+For this workshop we will use a slightly different version of the _mpg_ data set, instead of loading it from the R package (as we did before), we are going to load it from a `.data` file which is a special R file that is used to store data.
+
+```{r}
+autodata <- read.table('../data/auto-mpg.data') 
+autodata
+```
+ 
+Instead of using `read.csv` we used `read.table` since our data comes in the table format (when saving `.data` files you always save data frames as tables). Notice that the columns have no names and are labels only by the order they have, without further information there's no way of telling what each column represents. Fortunately this data set is well documented and we do know the actual names for the columns, here's how to rename the columns:
+ 
+```{r}
+colnames(autodata) <- c('mpg', 'cyl', 'dsp', 'hp', 'wg', 'acc', 'year', 'origin', 'name')
+autodata
+```
+Now lets look at the summary of our data
+
+```{r}
+summary(autodata)
+```
+
+Lets say that we want to model the displacement of the engine as a function of the mileage, to get a grasp of the relationship, we can make a simple scatter plot of the two variables:
+
+```{r}
+library(ggplot2)
+ggplot(data = autodata) + 
+  geom_point(mapping = aes(x=mpg , y=dsp))
+```
+
+There seems to be a strong relationship between the two variables although it doesn't look linear at all, so lets try to model our data as polynomials of increasing degree. For that we can use a generalization of the linear regression called [Generalized Linear Model](https://en.wikipedia.org/wiki/Generalized_linear_model) (GLM). Without getting into the mathematics behind GLM, we will use the polynomial fitting functions that come within the `stats`package.
+
+```{r}
+library(stats)
+library(boot)
+ggplot(data = autodata, aes(x=mpg, y=dsp)) +
+  stat_smooth(method='glm',  fill = NA, 
+              formula = y ~ poly(x, 2), color = 'red') +
+  stat_smooth(method='glm',  fill = NA, 
+              formula = y ~ poly(x, 4), color = 'blue') +
+  stat_smooth(method='glm',  fill = NA, 
+              formula = y ~ poly(x, 8), color = 'green') +
+  geom_point(aes(x=mpg, y=dsp), size = 1, alpha = 0.6)
+
+```
+
+Here we added three different polynomial curves of increasing degree (2, 4 and 8) fitted to our observations. We used the `stat_smooth` geometry as we did before but changed the method to `glm`. We also changed the formula (with respect to linear regressions) and used `poly(x, N)` to fit a polynomial of degree $N$ ($y = a_{0} + a_{1}x + a_{2}x^2 + ... + a_{N}x^N$).
+
+As you can see, as we increase the degree of the polynomial, the curves more closely follow the observations but, how haw can we tell which curve is actually better?
+
+For this we will use a simple technique that consists on splitting our observations into _training_ and a _testing_ samples son we can fit our model using the training sample and evaluate the error on the testing sample. In this way we will get an error measure that is not influenced by the data that we used to fit the model.
+
+Before getting into that, we need to know how to get the error estimates from the fitted model, the `glm` package provides the function [`cv.glm`](https://www.rdocumentation.org/packages/boot/versions/1.3-20/topics/cv.glm) (an acronym for cross validation glm) to evaluate the error. For each fitting `cv.glm` will test the predicted values against a data set we provide and calculate the error. To see how it works, lets fit increasing degree polynomials from 1 to 9 and evaluate the error for each.
+
+```{r}
+trainingset <- autodata
+crossvalidset <- autodata
+
+#This sets the random number seed and is needed for reproductability
+set.seed(9)
+
+# Empty array to store the errors
+cv.err <- c() #Array vacío 
+
+# Fit polynomials of degree 1 to 9
+for(i in 1:9) 
+{
+  fit <- glm(mpg ~ poly(dsp, i), data=trainingset) 
+  cv.err[i] <- cv.glm(crossvalidset, fit, K=5)$delta[1]
+}
+
+# Transform the error vector into a dataframe
+error.dataframe <- data.frame(error = unlist(cv.err))
+error.dataframe
+```
+
+Well, those were a lot of new things in just a few lines of code! Lets break it down a bit:
+
+* `cv.err <- c()` creates an empty array to hold our results
+* `for(i in 1:9) {do something}` is the basic structure of a _for loop_ in R. It simply executes the statement inside the curly braces 9 times, each time increasing the value of `i`by one
+* `error.dataframe <- data.frame(error = unlist(cv.err))` creates a data frame by _unpacking_ the vector `cv.err`
+* `cv.err[i] <- cv.glm(crossvalidset, fit, K=5)$delta[1]` fill the $i-th$ entry of the `cv.err` array with the first entry  of the `delta` column returned by the `cv.glm` function: the error estimate.
+
+So, summarizing, what we did was getting an error estimate for each fitted polynomial, staring with a linear fit (degree 1) and ending with a $9^{th}$ degree polynomial. Now lets see a plot of those errors
+
+```{r}
+library(tibble)
+ggplot(rownames_to_column(error.dataframe, var = 'degree'))+
+  geom_point(aes (x=degree, y=error))
+
+```
+
+Here we used the `tibble` library (part of the diversity) that provides extra functionality for data frame like structures. In this case we just used the function `rownames_to_column` to transform the row index (the position of the row) into a column named `degree`. From then on, the plot is just a scatter plot.
+
+Looking at the plot it seems as if the error actually decreases while the degree increases, but take a moment to think about that: we used the same data to train and test our model!
+
+What happens if we actually split the data set into two samples?
+
+
+```{r}
+library(dplyr)
+train <- sample_n(autodata, 350)
+test <- sample_n(autodata, 50)
+
+trainingset <- train
+crossvalidset <- test
+cv.err <- c() 
+for(i in 1:9) 
+{
+  fit <- glm(mpg ~ poly(dsp, i), data=trainingset)
+  cv.err[i] <- cv.glm(crossvalidset, fit, K=5)$delta[1]
+}
+
+#cv.err
+error.dataframe.cv <- data.frame(error = unlist(cv.err))
+ggplot(rownames_to_column(error.dataframe.cv, var = 'degree'))+
+  geom_point(aes (x=degree, y=error))
+```
+
+The only new thing here is the use of `sample_n(autodata, 350)` which takes a random sample of 350 observations from the data frame passed as argument.
+
+And now, the trade-off becomes evident, as we increase the degree of the fitted polynomial and measure the error against data _not yet seen_ by the model, the error does not seem to decrease!
+
+## Assignment
+
+Repeat he procedure with a different set of variables
+
+## Extra assignment
+
+Can we see the same behavior when using multiple linear regression?
+Adding more variables to the model could lead to the same behavior?
+
+
+https://rpubs.com/pskumar/IS605_Assignment12

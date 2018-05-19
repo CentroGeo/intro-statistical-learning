@@ -1,0 +1,184 @@
+---
+title: "Decision Trees"
+output:
+  html_document:
+    df_print: paged
+---
+## Introduction
+
+[Decision trees](https://en.wikipedia.org/wiki/Decision_tree) are a great tool for classification problems. Besides doing a good job in classifying observations they provide us with a graphic representation of the importance of the different factors. They work by succesively dividing the variable space trying to obtain the best possible separations in the target variable. In this workshop we are going to work with the [Titanic](https://www.kaggle.com/c/titanic) data set to try to find out the most important factors driving the survival of the passengers.
+
+## Inspecting the data
+
+As usual, the first thing we are doing is loading the data
+
+```{r}
+titanic <- read.csv("../data/titanic_clean.csv", header = TRUE, sep = ",")
+#str(titanic)
+```
+And then explore it
+
+```{r}
+tail(titanic)
+```
+
+As you can see we have some features describing the characteristics of each passenger and a label (`survived`) that tells us whether the passenger survived or not. Just to be sure that every passenger is labeld, lets check for null values in the survived column
+
+```{r}
+library(dplyr)
+filter(titanic, is.na(survived))
+```
+
+So we have one observation that has a `NA` in our label column, we shoul get rid of this
+
+```{r}
+titanic <- filter(titanic, !is.na(survived))
+```
+
+Lets check if everything went well
+
+```{r}
+filter(titanic, is.na(survived))
+```
+As you can see, now every observation is properly labeled.
+
+Now that our data is clean, we can make some graphics to better know our dataset. For example, lets see how is the female/male distribution by passenger class
+
+```{r}
+library(ggplot2)
+
+ggplot(titanic,aes(x=factor(pclass),fill=factor(sex)))+
+  geom_bar(position="dodge")
+```
+
+We are using now a bar geometry, this will take the aesthetic mapping and count the occurances of every factor variable. In this case that produces three groups of bars (one for each passenger class) and two bars within each group (one for each sex).
+
+Now, lets see how passenger class and sex influences the chance of survival. We can visualy inspect this with a facet grid.
+
+```{r}
+ggplot(titanic,aes(x=factor(pclass),fill=factor(sex)))+
+  geom_bar(position="dodge")+
+  facet_grid(". ~ survived")
+```
+### Quick excercise
+
+Interpret the graph
+
+Now, lets try to see if age has any further influence on the survival chances. That means addin one extra dimension to our graphic representation which doesn't fit with the bars we were doing. To overcome this, we can use points to represent the passengers, color them by sex and position them according to their age:
+
+```{r}
+ggplot(titanic,aes(x=factor(pclass),y=age,col=factor(sex)))+
+  geom_point(size=3,alpha=0.5)+
+  facet_grid(". ~ survived")
+```
+
+Although this graphic shows what we want, it is not easy to read because all the points overlap, `ggplot` provides us with a specific geometry to overcome this situation: [jitter](http://ggplot2.tidyverse.org/reference/geom_jitter.html) which randomly spreads the points:
+
+```{r}
+posn.j <- position_jitter(0.3, 0) # reajusta la posición para que se sobrepongan
+ggplot(titanic,aes(x=factor(pclass),y=age,col=factor(sex)))+
+  geom_jitter(size=3,alpha=0.5,position=posn.j)+
+  facet_grid(". ~ survived")
+```
+
+`position_jitter` defines the upper bounds for the random spreading along each axis (in this case we are only spreading around the x-axis), and `geom_jitter` takes it as an argument. Play with different jitter values to see how it works.
+
+### Quick excercise
+
+Interpret the graph
+
+## Decision Tree
+
+Before fitting a decision tree to our data, lets remember what we learned about the bias-variance tradeoff. One way to aleviate this issue is to split our data in two subsets: one for training and one for testing, that way we can estimate the error of our model on a different set of data that the one used fot fitting. 
+
+For our Titanic data, [kaggle](https://www.kaggle.com/) provides a split into two separate data sets, so we will use their split to train and test our model. The following code will download and _parse_ as csv the files directly from the kaggle site (alternatively, you can use the files in the data folder of this course: `titanic_train.csv` and `titanic_test.csv`).
+
+
+```{r}
+# Import training set: test
+train_url <- "http://s3.amazonaws.com/assets.datacamp.com/course/Kaggle/train.csv"
+train <- read.csv(train_url)
+  
+# Importtesting set
+test_url <- "http://s3.amazonaws.com/assets.datacamp.com/course/Kaggle/test.csv"
+test <- read.csv(test_url)
+  
+# Print train and test to the console
+str(train)
+
+```
+```{r}
+str(test)
+```
+
+Now lets look a little bit at how the test/train data split works. For that we will look at the [_contingency_ tables](https://www.rdocumentation.org/packages/base/versions/3.5.0/topics/table) of each data set, that is, the number of occurances of each class in both datasets
+
+```{r}
+surv_train <- table(train$Survived)
+surv_train
+```
+
+Or, alternatively, we can see the proportions of each class
+
+```{r}
+prop.table(table(train$Survived))
+```
+
+### Quick escercise 
+
+Do the same for tha test data set and discuss the importance of the number of cases in each split and the proportions for each class.
+
+## Fitting a decision tree
+
+Now we can proceed to fit a model to our training data. First we need to install the `rpart` package that has an excelent implementation of decision trees.
+
+```{r}
+install.packages('rpart')
+library(rpart)
+```
+
+Now, it is relatively easy to fit our training data, `rpart` uses the _formula- interface that is common to many R packages. In this case we will use several features to predict the outcome variable
+
+```{r}
+decision.tree <- rpart(Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare + Embarked, data = train, method = "class")
+decision.tree
+
+```
+
+The output, although not pretty, tells us everything we need to know about the model. Each number aon the left represents a node in our tree and is labeled according to the variable used in that particular split; the next number tells us the number of cases entering each node and then the number of cases _lost_ (going to other branches); the next number is the predicted class and finally, the probability for each class. An asterisk denotes it is a terminal node (a node without further splits).
+
+Even if everything we need to know about our model is alredy there, we would eant to see a graphic output: a tree with branches. The packages `Rattle`and `rpart.plot` provide us with tools for displaying decision trees.
+
+```{r}
+install.packages('rattle')
+install.packages('rpart.plot')
+install.packages('RColorBrewer')
+library(rattle)
+library(rpart.plot)
+library(RColorBrewer)
+```
+
+```{r}
+fancyRpartPlot(decision.tree)
+```
+
+##Making Predictions.
+
+Now that we fitted and inspected our model on the training dataset, lets make some predictions on the test dataset. For this will use the `predict` method or `rpart`.
+
+```{r}
+# Make predictions on the test set
+my_prediction <- predict(decision.tree, test, type = "class")
+
+# Finish the data.frame() call
+my_solution <- data.frame(PassengerId = test$PassengerId, Survived = my_prediction)
+
+my_solution
+```
+
+### Assignment
+
+Evaluate the performance of the predicted values
+
+
+https://rpubs.com/violetgirl/201322

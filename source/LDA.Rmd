@@ -1,0 +1,183 @@
+---
+title: "Quadratic Discriminant Analysis"
+output: html_notebook
+---
+```{r}
+ install.packages('rattle')
+library("rattle") 
+```
+
+Now we are going to download the wine dataset available at the UCI Machine Learning Repository. 
+The wine data set contains the result of a chemical analisys of wines from an specific are of Italy. 
+
+```{r}
+UCI <- "http://archive.ics.uci.edu/ml"
+REPOS <- "machine-learning-databases"
+wine.url <- sprintf("%s/%s/wine/wine.data", UCI, REPOS)
+df <- read.csv(wine.url, header=F) 
+colnames(wine) <- c('Type', 'Alcohol', 'Malic', 'Ash', 
+                    'Alcalinity', 'Magnesium', 'Phenols', 
+                    'Flavanoids', 'Nonflavanoids',
+                    'Proanthocyanins', 'Color', 'Hue', 
+                    'Dilution', 'Proline')
+wine$Type <- as.factor(wine$Type)
+write.table(wine, "wine.csv", sep=",", row.names=FALSE)
+save(wine, file="wine.Rdata", compress=TRUE)
+
+attach(wine) #No se si el attach ra necesario pero igual lo hice jajaja
+head(wine)
+
+```
+
+
+
+## Linear Discriminant Analisys (LDA)
+
+Once we have downloaded the data set, we will calculate the LDA to find linear combinations of the original varibles(V) that gives the best possible separation between the groups(G). In the wine dataset we will identify 3 groups of cultivars and 13 chemical concentrations. If we have 3 groups the maximum number of useful discriminant functions will be G-1, hence we will have justo 2 possible discriminant functions for each of the 13 variables.
+
+We can carry out the LDA with the Ida() function, from the R MASS package. So we first need to install it and call the library
+```{r}
+install.packages('MASS')
+library(MASS)
+```
+
+##Calculating LDA and visualizing  the results. 
+
+The value for each discriminat are scaled so their mean is zero and the variance is one. In the ida results also will be displayed the "proportion of trace" that is the separation for each discriminant function, for the wine data we will get 68.75% and 31.25%. 
+
+```{r}
+(wine.lda <- lda(Type ~ ., data=wine))
+```
+
+## Stacked Histogram of the LDA values
+
+We can do the histogram using Idahist() function in R. For the first and the second discriminant function. 
+```{r}
+wine.lda.values <- predict(wine.lda)
+ldahist(data = wine.lda.values$x[,1], g=Type)
+```
+```{r}
+
+```
+
+
+```{r}
+ldahist(data = wine.lda.values$x[,2], g=Type)
+```
+
+Also we can display the best two discriminant functions as a scatterplot and labeling at the X an Y axis.
+```{r}
+plot(wine.lda.values$x[,1],wine.lda.values$x[,2]) # make a scatterplot
+text(wine.lda.values$x[,1] ,wine.lda.values$x[,2],Type,cex=0.7,pos=4,col="red") # como cambiar la leyenda??
+```
+
+```{r}
+
+library(ggplot2)
+```
+```{r}
+df <- structure(list(Group = c("a", "a", "a", "a", "a", "a", "a", "b", "b", "b", "b", "b", "b", "b", "b"),
+                         var1 = c(2, 3, 1, 2, 3, 2, 3, 3, 5, 6, 7, 6, 8, 5, 5), 
+                         var2 = c(9, 9, 9, 8, 7, 8, 9, 3, 2, 2, 1, 1, 2, 3, 3), 
+                         var3 = c(6, 7, 6, 6, 5, 6, 7, 1, 2, 1, 2, 3, 1, 1, 2)),
+                    .Names = c("Group","var1", "var2", "var3"),
+                    row.names = c(NA, -15L), class = "data.frame")
+fit <- lda(Group~., data=df)
+df
+```
+```{r}
+ggplotLDAPrep <- function(x){
+  if (!is.null(Terms <- x$terms)) {
+    data <- model.frame(x)
+    X <- model.matrix(delete.response(Terms), data)
+    g <- model.response(data)
+    xint <- match("(Intercept)", colnames(X), nomatch = 0L)
+    if (xint > 0L) 
+      X <- X[, -xint, drop = FALSE]
+  }
+  means <- colMeans(x$means)
+  X <- scale(X, center = means, scale = FALSE) %*% x$scaling
+  rtrn <- as.data.frame(cbind(X,labels=as.character(g)))
+  rtrn <- data.frame(X,labels=as.character(g))
+  return(rtrn)
+}
+
+fitGraph <- ggplotLDAPrep(fit)
+```
+
+```{r}
+
+#this is your code. The only thing I've changed here is the Group labels because you want a character vector instead of numeric labels
+df <- structure(list(Group = c("a", "a", "a", "a", "a", "a", "a", "b", "b", "b", "b", "b", "b", "b", "b"),
+                         var1 = c(2, 3, 1, 2, 3, 2, 3, 3, 5, 6, 7, 6, 8, 5, 5), 
+                         var2 = c(9, 9, 9, 8, 7, 8, 9, 3, 2, 2, 1, 1, 2, 3, 3), 
+                         var3 = c(6, 7, 6, 6, 5, 6, 7, 1, 2, 1, 2, 3, 1, 1, 2)),
+                    .Names = c("Group","var1", "var2", "var3"),
+                    row.names = c(NA, -15L), class = "data.frame")
+
+
+#here is the custom function I made that extracts the proper information from the LDA object. You might want to write your own version of this to make sure it works with all cases (all I did here was trim the original plot.lda() function, but I might've deleted some code that might be relevant for other examples)
+
+UCI <- "http://archive.ics.uci.edu/ml"
+REPOS <- "machine-learning-databases"
+wine.url <- sprintf("%s/%s/wine/wine.data", UCI, REPOS)
+wine <- read.csv(wine.url, header=F) 
+colnames(wine) <- c('Type', 'Alcohol', 'Malic', 'Ash', 
+                    'Alcalinity', 'Magnesium', 'Phenols', 
+                    'Flavanoids', 'Nonflavanoids',
+                    'Proanthocyanins', 'Color', 'Hue', 
+                    'Dilution', 'Proline')
+wine$Type <- as.factor(wine$Type)
+write.table(wine, "wine.csv", sep=",", row.names=FALSE)
+save(wine, file="wine.Rdata", compress=TRUE)
+
+attach(wine) #No se si el attach ra necesario pero igual lo hice jajaja
+head(wine)
+
+ggplotLDAPrep <- function(x){
+  if (!is.null(Terms <- x$terms)) {
+    data <- model.frame(x)
+    X <- model.matrix(delete.response(Terms), data)
+    g <- model.response(data)
+    xint <- match("(Intercept)", colnames(X), nomatch = 0L)
+    if (xint > 0L) 
+      X <- X[, -xint, drop = FALSE]
+  }
+  means <- colMeans(x$means)
+  X <- scale(X, center = means, scale = FALSE) %*% x$scaling
+  rtrn <- as.data.frame(cbind(X,labels=as.character(g)))
+  rtrn <- data.frame(X,labels=as.character(g))
+  return(rtrn)
+}
+
+fitGraph <- ggplotLDAPrep(fit)
+
+#Here are some examples of using ggplot to display your results. If you like what you see, I suggest to learn more about ggplot2 and then you can easily customize your plots
+
+#this is similar to the result you get when you ran plot(fit)
+ggplot(fitGraph, aes(LD1))+geom_histogram()+facet_wrap(~labels, ncol=1)
+
+#Same as previous, but all the groups are on the same graph
+ggplot(fitGraph, aes(LD1,fill=labels))+geom_histogram()
+```
+
+
+```{r}
+
+ldaobject <- lda(Type~., data=wine)
+fitGraph <- ggplotLDAPrep(ldaobject)
+ggplot(fitGraph, aes(LD1,LD2, color=labels))+geom_point()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+https://rstudio-pubs-static.s3.amazonaws.com/35817_2552e05f1d4e4db8ba87b334101a43da.html
