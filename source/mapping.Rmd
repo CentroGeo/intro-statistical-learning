@@ -1,0 +1,30 @@
+---
+title: "Mapping with R"
+output: html_notebook
+---
+
+## Introduction
+
+In this workshop we are going to do a simple mapping excercise using R. Although we will not carry on any analysis, we will produce a simple map and plot some variables, the idea is to get you acquanted with the basic tools to handle geospatial datain R.
+
+Before we start, lets install all the required packages
+
+```{r}
+install.packages(c("sp", "rgdal", "ggmap", "rgeos", "maptools"))
+```
+
+* ´sp´ handles spatial dataframes
+* ´rgdal´ handles geospatial datasources and projections
+* ´ggmap´ is like ´ggplot´ but for maps
+* ´rgeos´ is a tool that lets us build and operate on geometric objects
+* ´maptools´ provides a set of tools to draw better maps
+
+## Loading data
+
+For this workshop we will use bike sharing data from London, the data comes as a csv with coordinates as columns.
+
+```{r}
+cycle <- read.csv("../data/London_cycle_hire_locs.csv", header = TRUE)
+cycle
+```
+
