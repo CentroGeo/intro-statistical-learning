@@ -1,0 +1,78 @@
+---
+title: "Linear regression"
+output:
+  html_document:
+    df_print: paged
+---
+## Introduction
+
+One of the most important tasks in data analysis is making predictions, try to find out what is going to happen next based on our prior knowledge. Of course, when one has a solid theoretical background, predictions arise naturally, as is the case in physics, for example. But in many cases, all we have is data and we need to base our predictions solely on our observations.
+
+The most basic tool to predict a continuous variable is a linear regression. In a linear regression we _model_ the _target_ variable as a linear function of the _predictor_ variables (often referred to as _covariates_)
+
+$$T = a_{0} + \sum_{i=1}^n a_{i}X_i + O(2)$$
+
+here we are _modelling_ the target variable $T$ as a linear combination of the _covariates_ $X_{i}$ and $O(2)$ represents a second order error. The simplicity of linear models makes them a very useful tool to investigate whether there is a relationship between variables but it also makes them a limited tool to make accurate predictions. However, we are going to use a linear model to predict the outcome of advertising on revenues for a specific product, although it might not be the best approach, it will teach us the fundamentals behind predicting and working with predictions in R.
+
+```{r}
+library(stats)
+library(ggplot2)
+```
+
+## Fitting a linear model
+
+First thing we are going to do is read our data. This time we're not using sample data from an R package, we'll work with data that comes in _csv_ format (the plain and simple comma separated variables is one of the staples of data analysis).
+
+```{r}
+(ads <- read.csv("../data/Advertising.csv"))
+```
+
+We are assigning the result of reading the file to the variable `ads`. Notice how we passed the path to the file to the [`read.csv`](http://stat.ethz.ch/R-manual/R-devel/library/utils/html/read.table.html) function, this is called a _relative_ path, the two dots at the beginning tells the function to go up one directory, from then on, look for the `data` folder and the `Advertising.csv` file. When working with files keep in mind that R uses what is called _Unix path style_, which means that the backslash is always used to indicate a folder.
+
+
+Now we are going to fit a linear regression model using [lm.fit (Fitter for Linear Models)](https://www.rdocumentation.org/packages/pbdDMAT/versions/0.4-2/topics/lm.fit). The fitting is done using the [Ordinary Least Squares](https://en.wikipedia.org/wiki/Ordinary_least_squares) method that works by minimizing the squared difference between the observations and the fitted line.
+
+The `lm()` function returns a list of values containing: 
+* the residuals: the difference between the fitted and the observed values
+* and the coefficients: the weights for each _predictive_ variable
+
+The input to `lm()` is a formula relating the target variable with the predictors. In this case we're going to fit (predict) the sales values using only the spending on TV advertising.
+
+The general lineal model then becomes
+
+$$S = w*Tv + b$$
+
+where $S$ is the sales, $Tv$ the expendage on Tv ads, $w$ is the weight (our regression coefficient) and $b$ is the intercept (the value of sales when no money is spent on Tv advertising).
+
+```{r}
+fitted <- lm(sales ~ TV, data=ads)
+summary(fitted)
+```
+
+When we call `summary()` on our fitted model we get an overview of the results:
+
+* Residuals tells us the distribution of the difference between observed and predicted values
+* Coefficients tells us the actual values of the fitted model: the intercept (the value of our target when the predictor is zero) and the weight of each predictor (or the slope of the line when using a single predictive variable) 
+
+Of special importance are the [_p-values_](https://en.wikipedia.org/wiki/P-value) that tells us about the statistical significance of the relationships we found. A simplistic interpretation of the _p-value_ is that it is the probability of having found the fitted coefficients just by chance. Currently there is a heated debate about the consequences of relying solely on p-values as a measure of statistical significance and the impact it has had on science. In [this](https://freakonometrics.hypotheses.org/19817) article you can find a simple explanation of the debate.
+
+The other important measure in the summary report is the _Adjusted R-squared_, that is the amount of variation in our target variable that is _explained_ by the variation in the predictor variables. In this case we see that a little more than $60\%$ of the variation in sales is explained by the amount spent on TV advertising.
+
+Now lets see a visual representation of our fitted model, for that we will use `ggplot` with the special geometry `stat_smooth` which takes a model as input parameter:
+
+```{r}
+ggplot(data = ads, aes(x= TV, y= sales)) + 
+  geom_point( mapping = aes(x= TV, y= sales), size = 2, color = "red") + #adentro del mapeo usa la variable para definir el tamaño del mapping
+  stat_smooth(method = lm,  color = "blue")
+```
+
+From the plot we can see that our observations follow the general trend of the fitted line but that our model is a poor predictor for the actual value of sales.
+
+
+## Assignment
+
+Repeat the above procedure using radio and newspaper ad spending
+
+### Reference
+
+http://marek.petrik.us/teaching/intro_ml_17_files/linear_regression.html
