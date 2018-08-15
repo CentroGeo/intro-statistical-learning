@@ -1,0 +1,223 @@
+---
+title: "Classification Methods"
+output: html_notebook
+--- 
+
+##Introduction
+
+Linear regression models assume that the response variable $Y$ is quantitative. Nevertheless, sometimes the response variable is instead qualitative. This kind of data can be used for predicting qualitative responses, a process that is known as classification. Predicting a qualitative response for an observation can be referred to as classifying that observation, since it involves assigning the observation to a category, or class. On the other hand, often
+the methods used for classification first predict the probability of each of the categories of a qualitative variable, as the basis for making the classification. In this sense they also behave like regression methods.
+
+  The aim of this exercise is to make a comparison of 3 classification methods: __Logistic Regression__, __Linear Discriminant Analysis (LDA)__, __Quadratic Discriminant Analysis (QDA)__ and how we can use them with quantitative and qualitative variables. These three examples illustrate that no one method will dominate the others in every situation. 
+
+
+
+```{r}
+#Loading packages
+## for lda() and qda()
+install.packages("MASS")
+library(MASS)
+## Plotting
+install.packages("ggplot2")
+library(ggplot2)
+install.packages("gridExtra")
+library(gridExtra)
+## for knn()
+install.packages("class")
+library(class)
+```
+
+We are going to use the Credit Card Default Data (Default), which is part of the ISLR library. It contains information of ten thousand customers, that we can use to predict which customers will default on their credit card debt.
+
+Variables description:  
+1. default: A factor with levels ‘No’ and ‘Yes’ indicating whether the customer defaulted on their debt
+2. student: A factor with levels ‘No’ and ‘Yes’ indicating whether the customer is a student
+3. balance: The average balance that the customer has remaining on their credit card after making their monthly payment
+4. income: Income of customer
+
+```{r}
+install.packages("ISLR")
+library(ISLR)
+## data(package = "ISLR") #Here we can visualize the data sets in ISLR package 
+data(Default) 
+head(Default)
+```
+
+Since we have two types of variables: __categorical__ (default and student) and __numerical__ (balance and income). The summary command helps us to know for categorical variables, the number of elements on each category and for numerical variables we'll get basic statistical information.
+
+```{r}
+summary(Default) 
+```
+
+To explore the data we'll plot AL the variables to identify the relations between them. 
+
+
+```{r}
+## Plot
+plotData <- ggplot(data = Default, mapping = aes(x = balance, y = income, color = default, shape = student)) +
+  geom_point(stat = "identity", alpha = 0.5) +
+    scale_color_manual(values = c("No" = "gray65", "Yes" = "red")) +
+    theme_bw() +
+    theme(legend.key = element_blank()) +
+    labs(title = "Original data")
+plotData
+```
+
+### Logistic Regression 
+
+Here we are going to calculate Logistic regression model in order to predict the default using balance and income. The glm() function fits generalized linear models using the famyly=binomial argument, it tells R to run a logistic regression rather than other type of generalized model.   
+
+```{r}
+## Fit logistic regression
+resLogit <- glm(formula = default ~ scale(balance) + scale(income),
+                family  = binomial(link = "logit"),
+                data    = Default)
+## Show the result
+summary(resLogit)
+```
+
+Also, we'll calculate predicted probability and classification (qualitative response) for the same variables 
+
+```{r}
+
+## Put the predicted probability
+Default$predProbLogit <- predict(resLogit, type = "response")
+Default$predClassLogit <- factor(predict(resLogit, type = "response") > 0.5,
+                                 levels = c(FALSE,TRUE), labels = c("No","Yes"))
+
+## Plot (probability)
+plotLogit <- ggplot(data = Default, mapping = aes(x = balance, y = income, color = predProbLogit, shape = student)) +
+  geom_point(alpha = 0.5) +
+    scale_color_gradient(low = "yellow", high = "red") +
+    theme_bw() +
+    theme(legend.key = element_blank()) +
+    labs(title = "Predicted probability of outcome (Logistic)")
+grid.arrange(plotData, plotLogit, ncol = 2)
+```
+```{r}
+Default
+```
+
+
+### Linear Discriminant Analysis (LDA)
+
+```{r}
+## Plot (classification)
+plotLdaClass <- ggplot(data = Default, mapping = aes(x = balance, y = income, color = predClassLogit, shape = student)) +
+    geom_point(alpha = 0.5) +
+    scale_color_manual(values = c("No" = "yellow", "Yes" = "red")) +
+    theme_bw() +
+    theme(legend.key = element_blank()) +
+    labs(title = "Predicted outcome (Logistic; p>0.5)")
+grid.arrange(plotData, plotLdaClass, ncol = 2)
+```
+
+```{r}
+resLda <- lda(formula = default ~ scale(balance) + scale(income),
+              data    = Default)
+resLda
+```
+
+```{r}
+predLda <- predict(resLda)
+str(predLda)
+```
+
+```{r}
+## Put into the dataset
+Default$predProbLda <- predLda$posterior[,"Yes"]
+Default$predClassLda <- predLda$class
+
+## Plot (probability)
+plotLdaProb <- ggplot(data = Default, mapping = aes(x = balance, y = income, color = predProbLda, shape = student)) +
+    geom_point(alpha = 0.5) +
+    scale_color_gradient(low = "yellow", high = "red") +
+    theme_bw() +
+    theme(legend.key = element_blank()) +
+    labs(title = "Predicted probability of outcome (LDA)")
+grid.arrange(plotData, plotLdaProb, ncol = 2)
+```
+
+```{r}
+## Put into the dataset
+Default$predProbLda <- predLda$posterior[,"Yes"]
+Default$predClassLda <- predLda$class
+
+## Plot (probability)
+plotLdaProb <- ggplot(data = Default, mapping = aes(x = balance, y = income, color = predProbLda, shape = student)) +
+    geom_point(alpha = 0.5) +
+    scale_color_gradient(low = "yellow", high = "red") +
+    theme_bw() +
+    theme(legend.key = element_blank()) +
+    labs(title = "Predicted probability of outcome (LDA)")
+grid.arrange(plotData, plotLdaProb, ncol = 2)
+```
+
+```{r}
+## Plot (classification)
+plotLdaClass <- ggplot(data = Default, mapping = aes(x = balance, y = income, color = predClassLda, shape = student)) +
+    geom_point(alpha = 0.5) +
+    scale_color_manual(values = c("No" = "yellow", "Yes" = "red")) +
+    theme_bw() +
+    theme(legend.key = element_blank()) +
+    labs(title = "Predicted outcome (LDA)")
+grid.arrange(plotData, plotLdaClass, ncol = 2)
+```
+
+
+```{r}
+## Fit QDA
+resQda <- qda(formula = default ~ scale(balance) + scale(income),
+              data    = Default)
+resQda
+```
+
+```{r}
+## Predict
+predQda <- predict(resQda)
+str(predQda)
+```
+
+```{r}
+## Put into the dataset
+Default$predProbQda <- predQda$posterior[,"Yes"]
+Default$predClassQda <- predQda$class
+
+## Plot (probability)
+plotQdaProb <- ggplot(data = Default, mapping = aes(x = balance, y = income, color = predProbQda, shape = student)) +
+    geom_point(alpha = 0.5) +
+    scale_color_gradient(low = "yellow", high = "red") +
+    theme_bw() +
+    theme(legend.key = element_blank()) +
+    labs(title = "Predicted probability of outcome (QDA)")
+grid.arrange(plotData, plotQdaProb, ncol = 2)
+```
+
+```{r}
+## Plot (classification)
+plotQdaClass <- ggplot(data = Default, mapping = aes(x = balance, y = income, color = predClassQda, shape = student)) +
+    geom_point(alpha = 0.5) +
+    scale_color_manual(values = c("No" = "yellow", "Yes" = "red")) +
+    theme_bw() +
+    theme(legend.key = element_blank()) +
+    labs(title = "Predicted outcome (QDA)")
+grid.arrange(plotData, plotQdaClass, ncol = 2)
+```
+
+```{r}
+## Fit KNN (the output is a vector of prediction)
+resKnn <- knn(train = scale(Default[c("balance","income")]),
+              test  = scale(Default[c("balance","income")]),
+              cl    = Default$default, k = 1)
+Default$predClassKnn <- resKnn
+
+## Plot (classification)
+plotKnnClass <- ggplot(data = Default, mapping = aes(x = balance, y = income, color = predClassKnn, shape = student)) +
+    geom_point(alpha = 0.5) +
+    scale_color_manual(values = c("No" = "yellow", "Yes" = "red")) +
+    theme_bw() +
+    theme(legend.key = element_blank()) +
+    labs(title = "Predicted outcome (KNN)")
+grid.arrange(plotData, plotKnnClass, ncol = 2)
+```
+http://www.rpubs.com/kaz_yos/lda1
