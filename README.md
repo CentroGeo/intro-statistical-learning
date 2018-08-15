@@ -25,6 +25,7 @@ Each workshop is contained in a notebook with the code and explanations necessar
 * [Multiple Linear Regression](./03-multiple-linear-regression/index.html)
 * [Bias-Variance Trade-off](./04-bias-variance/index.html)
 * [Decision Trees](./05-decision-trees/index.html)
+* [Classification](./06-classification/index.html)
 
 
 ### External Resources
